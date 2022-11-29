@@ -3,6 +3,8 @@
 class AccountSearchService < BaseService
   attr_reader :query, :limit, :offset, :options, :account
 
+  MENTION_ONLY_RE = /\A#{Account::MENTION_RE}\z/i
+
   def call(query, account = nil, options = {})
     @acct_hint = query&.start_with?('@')
     @query     = query&.strip&.gsub(/\A@/, '')
@@ -175,7 +177,7 @@ class AccountSearchService < BaseService
   end
 
   def username_complete?
-    query.include?('@') && "@#{query}".match?(/\A#{Account::MENTION_RE}\Z/)
+    query.include?('@') && "@#{query}".match?(MENTION_ONLY_RE)
   end
 
   def likely_acct?

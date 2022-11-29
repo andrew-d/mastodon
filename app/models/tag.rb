@@ -23,11 +23,13 @@ class Tag < ApplicationRecord
 
   has_many :featured_tags, dependent: :destroy, inverse_of: :tag
 
-  HASHTAG_SEPARATORS = "_\u00B7\u200c"
-  HASHTAG_NAME_RE    = "([[:word:]_][[:word:]#{HASHTAG_SEPARATORS}]*[[:alpha:]#{HASHTAG_SEPARATORS}][[:word:]#{HASHTAG_SEPARATORS}]*[[:word:]_])|([[:word:]_]*[[:alpha:]][[:word:]_]*)"
-  HASHTAG_RE         = /(?:^|[^\/\)\w])#(#{HASHTAG_NAME_RE})/i
+  HASHTAG_SEPARATORS   = "_\u00B7\u200c"
+  HASHTAG_NAME_RE      = "([[:word:]_][[:word:]#{HASHTAG_SEPARATORS}]*[[:alpha:]#{HASHTAG_SEPARATORS}][[:word:]#{HASHTAG_SEPARATORS}]*[[:word:]_])|([[:word:]_]*[[:alpha:]][[:word:]_]*)"
+  HASHTAG_RE           = /(?:^|[^\/\)\w])#(#{HASHTAG_NAME_RE})/i
+  HASHTAG_NAME_ONLY_RE = /\A(#{HASHTAG_NAME_RE})\z/i
+  HASHTAG_PREFIX       = /\A#/
 
-  validates :name, presence: true, format: { with: /\A(#{HASHTAG_NAME_RE})\z/i }
+  validates :name, presence: true, format: { with: HASHTAG_NAME_ONLY_RE }
   validate :validate_name_change, if: -> { !new_record? && name_changed? }
 
   scope :reviewed, -> { where.not(reviewed_at: nil) }
@@ -129,7 +131,7 @@ class Tag < ApplicationRecord
     end
 
     def normalize(str)
-      str.gsub(/\A#/, '')
+      str.gsub(HASHTAG_PREFIX, '')
     end
   end
 

@@ -163,6 +163,9 @@ module Mastodon
 
     config.active_job.queue_adapter = :sidekiq
 
+    # Don't attempt to update schema.rb in the Nix store
+    config.active_record.dump_schema_after_migration = false
+
     config.middleware.use Rack::Attack
     config.middleware.use Rack::Deflater
     config.middleware.use Mastodon::RackMiddleware

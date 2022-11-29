@@ -2,12 +2,14 @@
 
 class ActivityPub::Activity::Announce < ActivityPub::Activity
   def perform
-    return reject_payload! if delete_arrived_first?(@json['id']) || !related_to_local_activity?
+    return reject_payload!('already deleted') if delete_arrived_first?(@json['id'])
+    return reject_payload!('not related to local activity') unless related_to_local_activity?
 
     with_lock("announce:#{value_or_id(@object)}") do
       original_status = status_from_object
 
-      return reject_payload! if original_status.nil? || !announceable?(original_status)
+      return reject_payload!('no original status') if original_status.nil?
+      return reject_payload!('not announceable') unless announceable?(original_status)
       return if requested_through_relay?
 
       @status = Status.find_by(account: @account, reblog: original_status)

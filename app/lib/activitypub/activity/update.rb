@@ -16,13 +16,13 @@ class ActivityPub::Activity::Update < ActivityPub::Activity
   private
 
   def update_account
-    return reject_payload! if @account.uri != object_uri
+    return reject_payload!('incorrect URI') if @account.uri != object_uri
 
     ActivityPub::ProcessAccountService.new.call(@account.username, @account.domain, @object, signed_with_known_key: true)
   end
 
   def update_status
-    return reject_payload! if invalid_origin?(object_uri)
+    return reject_payload!('invalid origin') if invalid_origin?(object_uri)
 
     @status = Status.find_by(uri: object_uri, account_id: @account.id)
 

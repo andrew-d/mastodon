@@ -171,6 +171,9 @@ module Mastodon
     config.active_job.queue_adapter = :sidekiq
     config.action_mailer.deliver_later_queue_name = 'mailers'
 
+    # Don't attempt to update schema.rb in the Nix store
+    config.active_record.dump_schema_after_migration = false
+
     config.middleware.use Rack::Attack
     config.middleware.use Mastodon::RackMiddleware
 

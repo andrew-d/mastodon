@@ -1,6 +1,10 @@
 # frozen_string_literal: true
 
 class SearchService < BaseService
+
+  SEARCH_ALL_VISIBLE_TOOTS = ENV['SEARCH_ALL_VISIBLE_TOOTS'] == 'true'
+  SEARCH_ALL_ALLOWED_ACCOUNT_IDS = ENV['SEARCH_ALL_ALLOWED_ACCOUNT_IDS']
+
   def call(query, account, limit, options = {})
     @query   = query&.strip
     @account = account
@@ -24,6 +28,13 @@ class SearchService < BaseService
 
   private
 
+  def can_search_all_toots?(account)
+    return true if SEARCH_ALL_ALLOWED_ACCOUNT_IDS.blank?
+
+    @@allowed_ids = SEARCH_ALL_ALLOWED_ACCOUNT_IDS.split(',').map {|s| [Integer(s, exception: false), true]}.to_h
+    @@allowed_ids.fetch(account.id, false)
+  end
+
   def perform_accounts_search!
     AccountSearchService.new.call(
       @query,
@@ -35,7 +46,61 @@ class SearchService < BaseService
   end
 
   def perform_statuses_search!
-    definition = parsed_query.apply(StatusesIndex.filter(term: { searchable_by: @account.id }))
+    statuses_index = StatusesIndex
+    if !SEARCH_ALL_VISIBLE_TOOTS || !can_search_all_toots?(@account)
+      statuses_index = statuses_index.filter(term: { searchable_by: @account.id })
+    end
+    if @query.start_with?('🔍')
+      # simple query string: https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-simple-query-string-query.html
+      query_sort_text = @query.delete_prefix('🔍').strip
+      if query_sort_text.start_with?('📈')
+        query_text = query_sort_text.delete_prefix('📈').strip
+        order_by_date = 'asc'
+      elsif query_sort_text.start_with?('📉')
+        query_text = query_sort_text.delete_prefix('📉').strip
+        order_by_date = 'desc'
+      else
+        query_text = query_sort_text
+        order_by_date = nil
+      end
+
+      definition = statuses_index.query {
+        simple_query_string {
+          query query_text
+          fields ['text']
+          default_operator 'AND'
+        }
+      }
+      if order_by_date
+        definition = definition.order(created_at: order_by_date)
+      end
+    elsif @query.start_with?('🔎')
+      # query string: https://www.elastic.co/guide/en/elasticsearch/reference/6.8/query-dsl-query-string-query.html
+      query_sort_text = @query.delete_prefix('🔎').strip
+      if query_sort_text.start_with?('📈')
+        query_text = query_sort_text.delete_prefix('📈').strip
+        order_by_date = 'asc'
+      elsif query_sort_text.start_with?('📉')
+        query_text = query_sort_text.delete_prefix('📉').strip
+        order_by_date = 'desc'
+      else
+        query_text = query_sort_text
+        order_by_date = nil
+      end
+
+      definition = statuses_index.query {
+        query_string {
+          query query_text
+          default_field 'text'
+          default_operator 'AND'
+        }
+      }
+      if order_by_date
+        definition = definition.order(created_at: order_by_date)
+      end
+    else
+      definition = parsed_query.apply(statuses_index).order(created_at: :desc)
+    end
 
     if @options[:account_id].present?
       definition = definition.filter(term: { account_id: @options[:account_id] })

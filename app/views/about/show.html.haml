@@ -4,6 +4,8 @@
 - content_for :header_tags do
   = javascript_pack_tag 'public', crossorigin: 'anonymous'
   = render partial: 'shared/og'
+  - if @instance_presenter.mascot&.file&.url
+    = preload_link_tag @instance_presenter.mascot&.file&.url
 
 .grid-4
   .column-0

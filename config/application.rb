@@ -202,6 +202,9 @@ module Mastodon
     # We use our own middleware for this
     config.public_file_server.enabled = false
 
+    # Don't attempt to update schema.rb in the Nix store
+    config.active_record.dump_schema_after_migration = false
+
     config.middleware.use PublicFileServerMiddleware if Rails.env.development? || Rails.env.test? || ENV['RAILS_SERVE_STATIC_FILES'] == 'true'
     config.middleware.use Rack::Attack
     config.middleware.use Mastodon::RackMiddleware

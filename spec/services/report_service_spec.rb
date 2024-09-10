@@ -86,6 +86,34 @@ RSpec.describe ReportService, type: :service do
           end
         end
       end
+
+      context 'when an allowlist is set for forwarding' do
+        let(:can_forward_account) { Fabricate(:account) }
+
+        around do |example|
+          before = Rails.configuration.x.can_forward_reports
+          example.run
+          Rails.configuration.x.can_forward_reports = before
+        end
+
+        it 'will not forward a report if the source account is not in the allowlist' do
+          Rails.configuration.x.can_forward_reports = [can_forward_account.username]
+
+          subject.call(source_account, remote_account, forward: forward)
+          expect(a_request(:post, 'http://example.com/inbox')).to_not have_been_made
+
+          # Verify that the 'forwarded' attribute of the report is not set,
+          # despite :forward being true
+          expect(Report.last.forwarded).to be_falsey
+        end
+
+        it 'will forward a report if the source account is in the allowlist' do
+          Rails.configuration.x.can_forward_reports = [can_forward_account.username]
+
+          subject.call(can_forward_account, remote_account, forward: forward)
+          expect(a_request(:post, 'http://example.com/inbox')).to have_been_made
+        end
+      end
     end
 
     context 'when forward is false' do

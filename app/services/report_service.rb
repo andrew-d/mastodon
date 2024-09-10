@@ -65,6 +65,8 @@ class ReportService < BaseService
   end
 
   def forward?
+    return false if skip_forward?
+
     !@target_account.local? && ActiveModel::Type::Boolean.new.cast(@options[:forward])
   end
 
@@ -95,5 +97,20 @@ class ReportService < BaseService
 
   def some_local_account
     @some_local_account ||= Account.representative
+  end
+
+  def skip_forward?
+    # We have an allowlist of accounts that can forward reports to remote
+    # instances. This is to prevent abuse of the report system or notifying
+    # remote servers about our instance without an admin's consent.
+    #
+    # If no allowlist is set, we allow all accounts to forward reports.
+    return false if Rails.configuration.x.can_forward_reports.blank?
+
+    # If the source account isn't local, this function doesn't do anything and
+    # we "allow" the report; the logic to check is done elsewhere.
+    return false unless @source_account.local?
+
+    Rails.configuration.x.can_forward_reports.exclude?(@source_account.username)
   end
 end

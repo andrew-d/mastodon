@@ -2,6 +2,21 @@
   <!-- Set some basic system resource limits -->
   <policy domain="resource" name="time" value="60" />
 
+  <!--
+    NOTE(andrew-d): additional limits from me.
+
+    We run on a server with 8 cores, but we also run multiple Puma workers (5
+    processes, 5 threads). Set each Imagemagick process to use at most 1 core,
+    and 256MB of memory, so even though we might end up contending on resources,
+    it'll be less bad than the default where we end up 25 processes each using 8
+    cores and an arbitrary amount of memory.
+  -->
+  <policy domain="resource" name="thread" value="1" />
+  <policy domain="resource" name="memory" value="256MiB" />
+  <policy domain="resource" name="map" value="256MiB" />
+  <policy domain="resource" name="disk" value="512MB" />
+  <!-- END andrew-d -->
+
   <policy domain="module" rights="none" pattern="URL" />
 
   <policy domain="filter" rights="none" pattern="*" />

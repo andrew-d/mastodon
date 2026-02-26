@@ -45,6 +45,10 @@ class Rack::Attack
       !authenticated_user_id
     end
 
+    def media_proxy_authenticated?
+      authenticated_user_id.present? || warden_user_id.present?
+    end
+
     def api_request?
       path.start_with?('/api')
     end
@@ -82,8 +86,12 @@ class Rack::Attack
     req.authenticated_user_id if req.post? && req.path.match?(%r{\A/api/v\d+/media\z}i)
   end
 
-  throttle('throttle_media_proxy', limit: 30, period: 10.minutes) do |req|
-    req.throttleable_remote_ip if req.path.start_with?('/media_proxy')
+  throttle('throttle_media_proxy_authenticated', limit: 30, period: 10.minutes) do |req|
+    req.throttleable_remote_ip if req.path.start_with?('/media_proxy') && req.media_proxy_authenticated?
+  end
+
+  throttle('throttle_media_proxy_unauthenticated', limit: 100, period: 10.minutes) do |req|
+    'unauthenticated' if req.path.start_with?('/media_proxy') && !req.media_proxy_authenticated?
   end
 
   throttle('throttle_api_sign_up', limit: 5, period: 30.minutes) do |req|

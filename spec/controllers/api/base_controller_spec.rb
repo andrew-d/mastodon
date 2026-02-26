@@ -86,6 +86,7 @@ describe Api::BaseController do
       HTTP::Error => 503,
       OpenSSL::SSL::SSLError => 503,
       Mastodon::NotPermittedError => 403,
+      Mastodon::MediaProcessingTimeoutError => 503,
     }.each do |error, code|
       it "Handles error class of #{error}" do
         allow(FakeService).to receive(:new).and_raise(error)

@@ -41,6 +41,10 @@ module Api::ErrorHandling
       render json: { error: 'There was a temporary problem serving your request, please try again' }, status: 503
     end
 
+    rescue_from Mastodon::MediaProcessingTimeoutError do
+      render json: { error: 'Server is busy processing media, please try again' }, status: 503
+    end
+
     rescue_from Mastodon::RateLimitExceededError do
       render json: { error: I18n.t('errors.429') }, status: 429
     end

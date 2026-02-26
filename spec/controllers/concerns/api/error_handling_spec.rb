@@ -25,6 +25,7 @@ RSpec.describe Api::ErrorHandling do
       Date::Error => 422,
       HTTP::Error => 503,
       Mastodon::InvalidParameterError => 400,
+      Mastodon::MediaProcessingTimeoutError => 503,
       Mastodon::NotPermittedError => 403,
       Mastodon::RaceConditionError => 503,
       Mastodon::RateLimitExceededError => 429,

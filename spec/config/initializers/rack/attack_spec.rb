@@ -151,6 +151,59 @@ RSpec.describe Rack::Attack, type: :request do
     it_behaves_like 'throttled endpoint'
   end
 
+  describe 'throttle media proxy requests' do
+    let(:status) { Fabricate(:status) }
+    let(:media_attachment) { Fabricate(:media_attachment, status: status, remote_url: 'http://example.com/attachment.png') }
+    let(:path) { "/media_proxy/#{media_attachment.id}" }
+    let(:period) { 10.minutes }
+
+    before do
+      # The media proxy controller may re-download the remote media if the local cache is missing
+      stub_request(:get, 'http://example.com/attachment.png').to_return(request_fixture('avatar.txt'))
+      travel_to Time.zone.at((Time.now.to_i / period.seconds).to_i * period.seconds)
+    end
+
+    context 'with unauthenticated requests' do
+      let(:limit) { 100 }
+      let(:request) { -> { get path, headers: { 'REMOTE_ADDR' => remote_ip } } }
+
+      it_behaves_like 'throttled endpoint'
+
+      it 'shares the limit across different IPs' do
+        60.times do
+          get path, headers: { 'REMOTE_ADDR' => '1.1.1.1' }
+        end
+
+        41.times do
+          get path, headers: { 'REMOTE_ADDR' => '2.2.2.2' }
+        end
+
+        expect(response).to have_http_status(429)
+      end
+    end
+
+    context 'with authenticated requests' do
+      let(:limit) { 30 }
+      let(:user) { Fabricate(:user) }
+      let(:request) { -> { get path, headers: { 'REMOTE_ADDR' => remote_ip } } }
+
+      before do
+        sign_in user, scope: :user
+      end
+
+      it_behaves_like 'throttled endpoint'
+
+      it 'does not apply the unauthenticated limit to authenticated users' do
+        100.times do
+          get path, headers: { 'REMOTE_ADDR' => '9.9.9.9' }
+        end
+
+        get path, headers: { 'REMOTE_ADDR' => remote_ip }
+        expect(response).to_not have_http_status(429)
+      end
+    end
+  end
+
   describe 'throttle excessive password change requests by account' do
     let(:user) { Fabricate(:user, email: 'user@host.example') }
     let(:throttle) { 'throttle_password_change/account' }

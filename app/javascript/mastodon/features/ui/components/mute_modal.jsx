@@ -120,6 +120,7 @@ export const MuteModal = ({ accountId, acct }) => {
             <RadioButtonLabel name='duration' value='86400' label={intl.formatMessage(messages.hours, { number: 24 })} currentValue={muteDuration} onChange={handleChangeMuteDuration} />
             <RadioButtonLabel name='duration' value='604800' label={intl.formatMessage(messages.days, { number: 7 })} currentValue={muteDuration} onChange={handleChangeMuteDuration} />
             <RadioButtonLabel name='duration' value='2592000' label={intl.formatMessage(messages.days, { number: 30 })} currentValue={muteDuration} onChange={handleChangeMuteDuration} />
+            <RadioButtonLabel name='duration' value={60 * 86400} label={intl.formatMessage(messages.days, { number: 60 })} currentValue={muteDuration} onChange={handleChangeMuteDuration} />
           </div>
 
           <div className='safety-action-modal__field-group'>

@@ -16,6 +16,7 @@ module Mastodon
   class MalformedHeaderError < Error; end
   class RecursionLimitExceededError < Error; end
   class MediaProcessingTimeoutError < Error; end
+  class InvalidJsonLdError < Error; end
 
   class UnexpectedResponseError < Error
     attr_reader :response
